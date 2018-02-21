@@ -7,6 +7,21 @@ import (
 	"github.com/streadway/amqp"
 )
 
+type ticker struct {
+	ID                int    `json:"tickerId"`
+	EventID           int    `json:"eventId"`
+	ResourceOperation string `json:"resourceOperation"`
+}
+
+type tickerCreate struct {
+	ticker
+	ResourceName string `json:"resourceName"`
+}
+type tickerUpdate struct {
+	ticker
+	ResourceName string `json:"resourceName"`
+}
+
 func failOnError(err error, msg string) {
 	if err != nil {
 		log.Fatalf("%s: %s", msg, err)
@@ -16,8 +31,8 @@ func failOnError(err error, msg string) {
 
 func main() {
 	// conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
-	// conn, err := amqp.Dial("amqp://bunny:39GpHGT49d@rabbitmq.staging.tam-cms.com:5672/")
-	conn, err := amqp.Dial("amqp://bunny:39GpHGT49d@rabbitmq.dev.tam-cms.com:5672/")
+	conn, err := amqp.Dial("amqp://bunny:39GpHGT49d@rabbitmq.staging.tam-cms.com:5672/")
+	// conn, err := amqp.Dial("amqp://bunny:39GpHGT49d@rabbitmq.dev.tam-cms.com:5672/")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
@@ -26,12 +41,12 @@ func main() {
 	defer ch.Close()
 
 	q, err := ch.QueueDeclare(
-		"feed.liveticker", // name
-		true,              // durable
-		false,             // delete when unused
-		false,             // exclusive
-		false,             // no-wait
-		nil,               // arguments
+		"feed.alldata", // name
+		true,           // durable
+		false,          // delete when unused
+		false,          // exclusive
+		false,          // no-wait
+		nil,            // arguments
 	)
 	failOnError(err, "Failed to declare a queue")
 
@@ -41,7 +56,15 @@ func main() {
 		"liveticker",   // exchange
 		false,
 		nil)
-	failOnError(err, "Failed to bind a queue")
+	failOnError(err, "Failed to bind liveticker exchange")
+
+	err = ch.QueueBind(
+		q.Name,       // queue name
+		"metadata.#", // routing key
+		"metadata",   // exchange
+		false,
+		nil)
+	failOnError(err, "Failed to bind metadata exchange")
 
 	err = ch.Qos(
 		1,     // prefetch count
@@ -62,10 +85,22 @@ func main() {
 	failOnError(err, "Failed to register a consumer")
 
 	forever := make(chan bool)
-
 	go func() {
 		for d := range msgs {
 			log.Printf(" [x] %s", d.Body)
+
+			// if d.Body != nil {
+			// 	var data ticker
+			// 	if len(d.Body) > 0 {
+			// 		if err := json.Unmarshal(d.Body, &data); err != nil {
+			// 			log.Println(err)
+			// 		}
+			// 	}
+
+			// 	fmt.Printf("%+v\n", data)
+			// 	fmt.Println(data.ID)
+			// }
+
 			d.Ack(false)
 		}
 	}()
