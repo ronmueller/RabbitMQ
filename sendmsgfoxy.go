@@ -23,6 +23,7 @@ func main() {
 	// messages
 	msgcnt := flag.Int("cnt", 10, "Delivers x messages")
 	msgstr := flag.String("msg", "", "Deliver this Message")
+	msgtype := flag.String("type", "", "Deliver only this type of Message")
 	flag.Parse()
 
 	// open first channel
@@ -42,7 +43,7 @@ func main() {
 
 	for msgs := 0; msgs < *msgcnt; msgs++ {
 
-		body := bodyFrom(*msgstr, msgs+1)
+		body := bodyFrom(*msgstr, *msgtype, msgs+1)
 		err = ch.Publish(
 			"",     // exchange
 			q.Name, // routing key
@@ -50,7 +51,7 @@ func main() {
 			false,
 			amqp.Publishing{
 				DeliveryMode: amqp.Persistent,
-				ContentType:  "text/plain",
+				ContentType:  "application/json",
 				Body:         []byte(body),
 			})
 		failOnError(err, "Failed to publish a message")
@@ -59,21 +60,25 @@ func main() {
 
 }
 
-func bodyFrom(msg string, id int) string {
+func bodyFrom(msg string, msgtype string, id int) string {
 	rand.Seed(time.Now().UTC().UnixNano())
 	var s string
 	rnd := rand.Intn(4)
 	if (len(msg) < 2) || msg == "" {
 
-		switch rnd {
-		case 0:
-			s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tickers\",\"resourceOperation\":\"create\"}", id)
-		case 1:
-			s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tickers\",\"resourceOperation\":\"update\"}", id)
-		case 2:
-			s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tickers\",\"resourceOperation\":\"delete\"}", id)
-		case 3:
-			s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tickers\",\"resourceOperation\":\"modify\"}", id)
+		if msgtype == "" {
+			switch rnd {
+			case 0:
+				s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tester\",\"resourceOperation\":\"create\"}", id)
+			case 1:
+				s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tester\",\"resourceOperation\":\"update\"}", id)
+			case 2:
+				s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tester\",\"resourceOperation\":\"delete\"}", id)
+			case 3:
+				s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tester\",\"resourceOperation\":\"modify\"}", id)
+			}
+		} else {
+			s = fmt.Sprintf("{\"tickerId\":%d,\"resourceName\":\"tester\",\"resourceOperation\":\"%s\"}", id, msgtype)
 		}
 	} else {
 		s = msg
