@@ -1,12 +1,13 @@
 package main
 
-// docker run -d --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:alpine
+// docker run -d --restart=on-failure:10 --name rabbit -p 5672:5672 -p 15672:15672 rabbitmq:alpine
 
 // docker console:
 // wget https://dl.bintray.com/rabbitmq/community-plugins/3.7.x/rabbitmq_delayed_message_exchange/rabbitmq_delayed_message_exchange-20171201-3.7.x.zip
 // unzip rabbitmq_delayed_message_exchange-20171201-3.7.x.zip
 // mv rabbitmq_delayed_message_exchange-20171201-3.7.x.ez plugins/
 // rabbitmq-plugins enable rabbitmq_delayed_message_exchange
+// rabbitmq-plugins enable rabbitmq_management
 
 import (
 	"fmt"
