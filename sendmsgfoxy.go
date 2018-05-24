@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -24,6 +25,7 @@ func main() {
 	msgcnt := flag.Int("cnt", 10, "Delivers x messages")
 	msgstr := flag.String("msg", "", "Deliver this Message")
 	msgtype := flag.String("type", "", "Deliver only this type of Message")
+	msgheader := flag.String("header", "", "Deliver this Header")
 	flag.Parse()
 
 	// open first channel
@@ -42,6 +44,11 @@ func main() {
 	failOnError(err, "Failed to declare a queue")
 
 	for msgs := 0; msgs < *msgcnt; msgs++ {
+		header := make(amqp.Table)
+		if *msgheader != "" {
+			err := json.Unmarshal([]byte(*msgheader), &header)
+			failOnError(err, "Failed to read header")
+		}
 
 		body := bodyFrom(*msgstr, *msgtype, msgs+1)
 		err = ch.Publish(
@@ -53,6 +60,7 @@ func main() {
 				DeliveryMode: amqp.Persistent,
 				ContentType:  "application/json",
 				Body:         []byte(body),
+				Headers:      header,
 			})
 		failOnError(err, "Failed to publish a message")
 		log.Printf(" [x] Sent %s to channel 1", body)
