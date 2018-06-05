@@ -19,8 +19,21 @@ func failOnError(err error, msg string) {
 
 func main() {
 	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	// conn, err := amqp.Dial("amqp://bunny:39GpHGT49d@rabbitmq.staging.tam-cms.com:5672")
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
+
+	blockings := conn.NotifyBlocked(make(chan amqp.Blocking))
+	go func() {
+		for b := range blockings {
+			if b.Active {
+				log.Printf("TCP blocked: %q", b.Reason)
+			} else {
+				log.Printf("TCP unblocked")
+			}
+		}
+	}()
+
 	// messages
 	msgcnt := flag.Int("cnt", 10, "Delivers x messages")
 	msgstr := flag.String("msg", "", "Deliver this Message")
