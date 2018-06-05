@@ -18,8 +18,24 @@ func failOnError(err error, msg string) {
 }
 
 func main() {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
-	// conn, err := amqp.Dial("amqp://bunny:39GpHGT49d@rabbitmq.staging.tam-cms.com:5672")
+
+	// messages
+	dial := flag.String("dial", "local", "Delivers messages to different endpoints: [local(default)|staging]")
+	msgcnt := flag.Int("cnt", 10, "Delivers x messages")
+	msgstr := flag.String("msg", "", "Deliver this Message")
+	msgtype := flag.String("type", "", "Deliver only this type of Message")
+	msgheader := flag.String("header", "", "Deliver this Header")
+	flag.Parse()
+
+	fmt.Printf("Send message to: %s\n", *dial)
+	var conn *amqp.Connection
+	var err error
+	switch *dial {
+	case "staging":
+		conn, err = amqp.Dial("amqp://bunny:39GpHGT49d@rabbitmq.staging.tam-cms.com:5672")
+	default:
+		conn, err = amqp.Dial("amqp://guest:guest@localhost:5672/")
+	}
 	failOnError(err, "Failed to connect to RabbitMQ")
 	defer conn.Close()
 
@@ -33,13 +49,6 @@ func main() {
 			}
 		}
 	}()
-
-	// messages
-	msgcnt := flag.Int("cnt", 10, "Delivers x messages")
-	msgstr := flag.String("msg", "", "Deliver this Message")
-	msgtype := flag.String("type", "", "Deliver only this type of Message")
-	msgheader := flag.String("header", "", "Deliver this Header")
-	flag.Parse()
 
 	// open first channel
 	ch, err := conn.Channel()
